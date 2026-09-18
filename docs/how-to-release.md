@@ -4,6 +4,14 @@ Releases are tag-driven. A normal push to `main` runs CI only. Pushing a numeric
 
 The release workflow publishes to the existing Storyboard GitHub Packages NuGet feed using the workflow’s `GITHUB_TOKEN`; no `NUGET_API_KEY` secret is required.
 
+For the fast path, run this from a clean checkout on `main`:
+
+```powershell
+.\scripts\Release.ps1 -Version 0.1.1
+```
+
+The script performs the version update, validation, commit, annotated tag, and atomic push automatically. The detailed steps below explain what it is doing.
+
 ## 1. Update the project version
 
 Edit `src/Storyboard.Foundation/Storyboard.Foundation.csproj`:
