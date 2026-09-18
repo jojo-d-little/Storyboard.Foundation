@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore tests/Storyboard.Foundation.Tests/Storyboard.Foundation.Tests.csproj --configfile NuGet.Config
+      - name: Build library
+        run: dotnet build src/Storyboard.Foundation/Storyboard.Foundation.csproj --configuration Release --no-restore
+      - name: Build tests
+        run: dotnet build tests/Storyboard.Foundation.Tests/Storyboard.Foundation.Tests.csproj --configuration Release --no-restore
+      - name: Run tests
+        run: dotnet run --project tests/Storyboard.Foundation.Tests/Storyboard.Foundation.Tests.csproj --configuration Release --no-build

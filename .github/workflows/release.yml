@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Verify numeric release tag and project version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME}"
+          if [[ ! "$tag_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tags must use numeric SemVer, for example 0.1.1. Received: $tag_version"
+            exit 1
+          fi
+          project_version="$(dotnet msbuild src/Storyboard.Foundation/Storyboard.Foundation.csproj -getProperty:Version -nologo | tail -n 1 | tr -d '\r')"
+          echo "Tag version: $tag_version"
+          echo "Project version: $project_version"
+          if [[ "$tag_version" != "$project_version" ]]; then
+            echo "::error::Git tag '$tag_version' does not match project Version '$project_version'."
+            exit 1
+          fi
+          echo "value=$tag_version" >> "$GITHUB_OUTPUT"
+      - name: Restore
+        run: dotnet restore tests/Storyboard.Foundation.Tests/Storyboard.Foundation.Tests.csproj --configfile NuGet.Config
+      - name: Build library
+        run: dotnet build src/Storyboard.Foundation/Storyboard.Foundation.csproj --configuration Release --no-restore
+      - name: Build tests
+        run: dotnet build tests/Storyboard.Foundation.Tests/Storyboard.Foundation.Tests.csproj --configuration Release --no-restore
+      - name: Run tests
+        run: dotnet run --project tests/Storyboard.Foundation.Tests/Storyboard.Foundation.Tests.csproj --configuration Release --no-build
+      - name: Pack NuGet package
+        run: dotnet pack src/Storyboard.Foundation/Storyboard.Foundation.csproj --configuration Release --no-build --no-restore --output artifacts
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Storyboard.Foundation-${{ steps.version.outputs.value }}
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" artifacts/*.nupkg --title "${GITHUB_REF_NAME}" --generate-notes
