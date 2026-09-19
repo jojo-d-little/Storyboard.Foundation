@@ -21,7 +21,7 @@ function Invoke-Step {
 
     Write-Host "`n==> $Command" -ForegroundColor Cyan
     & $Action
-    if ($LASTEXITCODE -ne 0) {
+    if (-not $?) {
         throw "Command failed with exit code ${LASTEXITCODE}: $Command"
     }
 }
