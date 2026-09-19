@@ -8,7 +8,7 @@ The portability package understands any valid `%NAME%` process environment varia
 | `STORYBOARD_SAMPLE_PROJECTS_ROOT` | sample-project collection | Existing |
 | `STORYBOARD_WEBPORTAL_ROOT` | static WebPortal distribution | Existing |
 | `STORYBOARD_ASSET_SOURCE_ROOT` | primary authoring asset root | Existing, canonical |
-| `STORYBOARD_ASSET_SOURCE_ROOT_<NAME>` | additional named authoring asset root | New |
+| `STORYBOARD_ASSET_SOURCE_ROOT_<NAME>` | additional named authoring asset root | Supported canonical form |
 | `STORYBOARD_RUNTIME_GAME_DISCOVERY_JSON_PATH` | explicit discovery registration override | Existing runtime override |
 | `STORYBOARD_RUNTIME_IDENTITY_JSON_PATH` | explicit identity JSON override | Existing runtime override |
 

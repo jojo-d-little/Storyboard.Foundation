@@ -1,7 +1,7 @@
 # Portable Path Expansion and Multi-Root Asset Sources Handoff Plan
 
 Last updated: 2026-09-18  
-Status: Draft (handoff-ready; implementation not authorized)  
+Status: Complete — canonical multi-root format adopted; `ASSETROOT:/` retired  
 Purpose: replace inconsistent path portability behavior with one diagnosable `%ENV_VAR%` path-expression standard, enable multiple named asset roots, and create a locked cross-repository delivery cadence.
 
 ## Problem Statement
@@ -20,7 +20,7 @@ The outcome is one portable-path grammar across the system, deterministic multi-
 1. Do not make every internal derived path (for example, a runtime-export child file found relative to its already-resolved root) an environment-variable expression.
 2. Do not place machine-specific absolute source paths into runtime exports; Designer continues staging source assets into runtime-relative `assets/...` outputs.
 3. Do not introduce a required per-project asset-root configuration file in the first rollout; roots are discovered from the process environment by convention.
-4. Do not remove legacy `ASSETROOT:/` read compatibility before checked-in data and supported migration paths are complete.
+4. Legacy `ASSETROOT:/` compatibility is retired after controlled checked-in data migration.
 5. Do not make WebPortal or Simulator resolve authoring-time source asset paths when they consume only runtime-export-relative assets.
 
 ## Current Baseline (Observed)
