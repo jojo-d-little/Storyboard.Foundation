@@ -69,7 +69,7 @@ if (-not $Version) {
         throw "Cannot suggest a patch bump for current version '$currentVersion'."
     }
     $Version = "$($matches.major).$($matches.minor).$([int]$matches.patch + 1)"
-    $confirmation = Read-Host "Current version is $currentVersion. Use suggested version $Version? [Y/n]"
+    $confirmation = Read-Host "Current version is $currentVersion. Use suggested version ${Version}? [Y/n]"
     if ($confirmation -and $confirmation -notmatch '^(?i:y|yes)$') { throw 'Release cancelled.' }
 }
 if ($currentVersion -ne $Version) {
