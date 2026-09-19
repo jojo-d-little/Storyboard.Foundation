@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true, Position = 0)]
+    [Parameter(Position = 0)]
     [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
     [string]$Version
 )
@@ -64,6 +64,14 @@ if ($versionMatches.Count -ne 1) {
 }
 
 $currentVersion = $versionMatches[0].Value -replace '^<Version>|</Version>$', ''
+if (-not $Version) {
+    if ($currentVersion -notmatch '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$') {
+        throw "Cannot suggest a patch bump for current version '$currentVersion'."
+    }
+    $Version = "$($matches.major).$($matches.minor).$([int]$matches.patch + 1)"
+    $confirmation = Read-Host "Current version is $currentVersion. Use suggested version $Version? [Y/n]"
+    if ($confirmation -and $confirmation -notmatch '^(?i:y|yes)$') { throw 'Release cancelled.' }
+}
 if ($currentVersion -ne $Version) {
     $updatedProjectText = $projectText -replace '<Version>[^<]+</Version>', "<Version>$Version</Version>"
     [System.IO.File]::WriteAllText($projectFile, $updatedProjectText)
