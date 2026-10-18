@@ -12,6 +12,14 @@ For the fast path, run this from a clean checkout on `main`:
 
 The script performs the version update, validation, commit, annotated tag, and atomic push automatically. The detailed steps below explain what it is doing.
 
+## Local prerelease packages
+
+To build a timestamped local prerelease and copy it into the shared local NuGet feed, run:
+
+    .\scripts\LocalPrerelease.ps1
+
+By default, the script reads the base version from the project, advances the patch for a stable version, packs Storyboard.Foundation, copies the package to C:\work\LocalNugetDevFeed, and removes its temporary package output. Override the feed with the first positional argument, pass -BaseVersion to use a different version, or add -KeepPackage to retain the temporary package under artifacts\packages\local-prerelease.
+
 ## 1. Update the project version
 
 Edit `src/Storyboard.Foundation/Storyboard.Foundation.csproj`:

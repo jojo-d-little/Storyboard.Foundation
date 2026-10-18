@@ -5,16 +5,22 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Storyboard.Foundation</RootNamespace>
     <AssemblyName>Storyboard.Foundation</AssemblyName>
-    <Version>0.1.2</Version>
+    <Version>0.2.0</Version>
     <PackageId>Storyboard.Foundation</PackageId>
     <Authors>Storyboard</Authors>
-    <Description>Dependency-neutral shared utilities for Storyboard products.</Description>
-    <PackageTags>storyboard;paths;portability</PackageTags>
+    <Description>Framework-independent shared utilities for Storyboard products.</Description>
+    <PackageTags>storyboard;paths;portability;spatial;serialization</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/jojo-d-little/Storyboard.Foundation</RepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="README.md" />
+    <None Include="../../docs/renderable-placement-math.md" Pack="true" PackagePath="docs/renderable-placement-math.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Storyboard.Contracts" Version="1.0.*-*" />
   </ItemGroup>
 </Project>

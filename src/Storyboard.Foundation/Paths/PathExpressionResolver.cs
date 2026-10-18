@@ -2,8 +2,13 @@ using System.Text;
 
 namespace Storyboard.Foundation.Paths;
 
+/// <summary>Resolves portable path expressions with explicit caller-controlled policies.</summary>
 public static class PathExpressionResolver
 {
+    /// <summary>Expands environment-variable tokens and resolves a path expression.</summary>
+    /// <param name="expression">The path expression to resolve.</param>
+    /// <param name="options">Optional path policies; defaults allow absolute and relative paths.</param>
+    /// <returns>The resolved physical path or a diagnostic result describing the failure.</returns>
     public static PathExpressionResolutionResult Resolve(
         string? expression,
         PathExpressionOptions? options = null)

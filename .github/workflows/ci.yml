@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   build-test:
@@ -21,6 +22,10 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      - name: Configure GitHub Packages feed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget update source github --username jojo-d-little --password "$GH_TOKEN" --store-password-in-clear-text --configfile NuGet.Config
       - name: Restore
         run: dotnet restore tests/Storyboard.Foundation.Tests/Storyboard.Foundation.Tests.csproj --configfile NuGet.Config
       - name: Build library

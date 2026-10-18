@@ -1,7 +1,11 @@
 namespace Storyboard.Foundation.Paths;
 
+/// <summary>Orders asset roots and finds roots containing a filesystem path.</summary>
 public static class AssetRootMatcher
 {
+    /// <summary>Normalizes and orders roots by depth descending, then variable name ordinally.</summary>
+    /// <param name="roots">The roots to normalize and order.</param>
+    /// <returns>Normalized roots, with deepest paths first.</returns>
     public static IReadOnlyList<AssetRoot> OrderRoots(IEnumerable<AssetRoot> roots) =>
         roots
             .Select(root => new AssetRoot(root.VariableName, Path.GetFullPath(root.RootPath)))
@@ -9,6 +13,10 @@ public static class AssetRootMatcher
             .ThenBy(root => root.VariableName, StringComparer.Ordinal)
             .ToArray();
 
+    /// <summary>Finds every configured root containing a file, with deepest matches first.</summary>
+    /// <param name="filePath">The file path to match.</param>
+    /// <param name="roots">The candidate roots.</param>
+    /// <returns>All containing roots and their relative paths, ordered by depth and variable name.</returns>
     public static IReadOnlyList<AssetRootMatch> FindContainingRoots(string filePath, IEnumerable<AssetRoot> roots)
     {
         var fullFilePath = Path.GetFullPath(filePath);
