@@ -25,8 +25,8 @@ jobs:
           dotnet-version: 8.0.x
       - name: Configure GitHub Packages feed
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet nuget update source github --username jojo-d-little --password "$GH_TOKEN" --store-password-in-clear-text --configfile NuGet.Config
+          NUGET_READ_PACKAGES_TOKEN: ${{ secrets.NUGET_READ_PACKAGES_TOKEN }}
+        run: dotnet nuget update source github --username jojo-d-little --password "$NUGET_READ_PACKAGES_TOKEN" --store-password-in-clear-text --configfile NuGet.Config
       - name: Verify numeric release tag and project version
         id: version
         shell: bash
