@@ -30,7 +30,7 @@ jobs:
             echo "::error::NUGET_READ_PACKAGES_TOKEN is missing or unavailable to this workflow run."
             exit 1
           fi
-          dotnet nuget update source github --username jojo-d-little --password "$NUGET_READ_PACKAGES_TOKEN" --store-password-in-clear-text --configfile NuGet.Config
+          dotnet nuget update source github-storyboard --username jojo-d-little --password "$NUGET_READ_PACKAGES_TOKEN" --store-password-in-clear-text --configfile NuGet.Config
       - name: Restore
         run: dotnet restore tests/Storyboard.Foundation.Tests/Storyboard.Foundation.Tests.csproj --configfile NuGet.Config
       - name: Build library
