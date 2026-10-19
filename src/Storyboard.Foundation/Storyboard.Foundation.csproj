@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Storyboard.Foundation</RootNamespace>
     <AssemblyName>Storyboard.Foundation</AssemblyName>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <PackageId>Storyboard.Foundation</PackageId>
     <Authors>Storyboard</Authors>
     <Description>Framework-independent shared utilities for Storyboard products.</Description>
