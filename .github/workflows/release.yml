@@ -26,7 +26,12 @@ jobs:
       - name: Configure GitHub Packages feed
         env:
           NUGET_READ_PACKAGES_TOKEN: ${{ secrets.NUGET_READ_PACKAGES_TOKEN }}
-        run: dotnet nuget update source github --username jojo-d-little --password "$NUGET_READ_PACKAGES_TOKEN" --store-password-in-clear-text --configfile NuGet.Config
+        run: |
+          if [ -z "$NUGET_READ_PACKAGES_TOKEN" ]; then
+            echo "::error::NUGET_READ_PACKAGES_TOKEN is missing or unavailable to this workflow run."
+            exit 1
+          fi
+          dotnet nuget update source github --username jojo-d-little --password "$NUGET_READ_PACKAGES_TOKEN" --store-password-in-clear-text --configfile NuGet.Config
       - name: Verify numeric release tag and project version
         id: version
         shell: bash
