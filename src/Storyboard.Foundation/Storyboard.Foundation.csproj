@@ -19,6 +19,7 @@
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="README.md" />
     <None Include="../../docs/renderable-placement-math.md" Pack="true" PackagePath="docs/renderable-placement-math.md" />
+    <None Include="../../docs/room-image-placement-math.md" Pack="true" PackagePath="docs/room-image-placement-math.md" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Storyboard.Contracts" Version="1.0.*-*" />
