@@ -11,10 +11,15 @@ var tests = new (string Name, Action Body)[]
     ("enforces file URI policy", EnforcesFileUriPolicy),
     ("chooses deepest containing root", ChoosesDeepestRoot),
     ("orders equal-depth roots deterministically", OrdersRootsDeterministically),
+    ("preserves existing object placement behavior and fallbacks", PreservesExistingObjectPlacementBehavior),
     ("resolves the hosted position for every room-image slot", ResolvesEveryRoomImageSlot),
     ("preserves hosted quarter-turn and legacy rotation behavior", PreservesRoomImageRotationBehavior),
     ("preserves fractional coordinates and exposes native bitmap corners", PreservesFractionalPlacementAndCorners),
-    ("rejects invalid placement inputs", RejectsInvalidPlacementInputs)
+    ("rejects invalid room-image placement inputs", RejectsInvalidPlacementInputs),
+    ("composes and inverts the confirmed Elevator placements", ConfirmsElevatorStructuralPlacement),
+    ("matches independently transformed corners and quarter-turn round trips", ChecksStructuralPlacementCornersAndRoundTrips),
+    ("composes nested fractional structural rotations", ChecksNestedStructuralPlacement),
+    ("rejects invalid structural placement inputs", RejectsInvalidStructuralPlacementInputs)
 };
 
 var failures = new List<string>();
@@ -101,6 +106,25 @@ static void OrdersRootsDeterministically()
         new AssetRoot("ALPHA", Path.Combine(Path.GetTempPath(), "same"))
     });
     Assert(roots[0].VariableName == "ALPHA", "equal-depth roots were not ordered by variable name");
+}
+
+static void PreservesExistingObjectPlacementBehavior()
+{
+    var transformed = RenderablePlacementMath.TransformLocalPointWithinRotatedFootprint(90, 20, 10, 100, 60);
+    AssertNear(transformed.X, 50, "existing rotated footprint X");
+    AssertNear(transformed.Y, 20, "existing rotated footprint Y");
+
+    var icon = RenderablePlacementMath.ComputeIconLocalOffset(90, 90, 5, 7, 100, 60, 40, 20);
+    AssertNear(icon.X, 53, "existing object icon offset X");
+    AssertNear(icon.Y, 25, "existing object icon offset Y");
+
+    var invalidOffset = RenderablePlacementMath.ComputeIconLocalOffset(0, 0, double.NaN, 7, 100, 60, 40, 20);
+    Assert(invalidOffset == (0, 0), "existing non-finite offset fallback changed");
+    var invalidPoint = RenderablePlacementMath.TransformLocalPointWithinRotatedFootprint(90, 20, 10, -1, 60);
+    Assert(invalidPoint == (20, 10), "existing invalid footprint fallback changed");
+    var nonFiniteRotation = RenderablePlacementMath.TransformLocalPointWithinRotatedFootprint(double.NaN, 20, 10, 100, 60);
+    AssertNear(nonFiniteRotation.X, 20, "existing non-finite rotation fallback X");
+    AssertNear(nonFiniteRotation.Y, 10, "existing non-finite rotation fallback Y");
 }
 
 static void ResolvesEveryRoomImageSlot()
@@ -223,6 +247,180 @@ static void AssertPoint((double X, double Y) actual, double x, double y, string 
     AssertNear(actual.X, x, $"{description} X");
     AssertNear(actual.Y, y, $"{description} Y");
 }
+
+static void ConfirmsElevatorStructuralPlacement()
+{
+    var left = RenderablePlacementMath.ComposeChildFootprintPlacement(
+        80, 160, 270, 400, 400, 120, 320, 0, 80, 80);
+    var right = RenderablePlacementMath.ComposeChildFootprintPlacement(
+        80, 160, 270, 400, 400, 200, 320, 0, 80, 80);
+    AssertNear(left.RoomOriginX, 400, "Elevator left child AABB X");
+    AssertNear(left.RoomOriginY, 360, "Elevator left child AABB Y");
+    AssertNear(right.RoomOriginX, 400, "Elevator right child AABB X");
+    AssertNear(right.RoomOriginY, 280, "Elevator right child AABB Y");
+    AssertNear(left.AbsoluteRotationDegrees, 270, "Elevator child physical rotation");
+
+    var leftFit = RenderablePlacementMath.ComputeIconLocalOffset(270, 180, 11, -2, 80, 80, 67, 82);
+    var rightFit = RenderablePlacementMath.ComputeIconLocalOffset(270, 180, 1, -2, 80, 80, 65, 82);
+    AssertNear(left.RoomOriginX + leftFit.X, 480, "Elevator left closed bitmap X");
+    AssertNear(left.RoomOriginY + leftFit.Y, 362, "Elevator left closed bitmap Y");
+    AssertNear(right.RoomOriginX + rightFit.X, 480, "Elevator right closed bitmap X");
+    AssertNear(right.RoomOriginY + rightFit.Y, 294, "Elevator right closed bitmap Y");
+
+    var movedLeft = RenderablePlacementMath.ResolveChildFootprintLocalOrigin(
+        80, 160, 270, 400, 400, 360, 360, 0, 80, 80);
+    AssertNear(movedLeft.X, 120, "moved left inverse local X");
+    AssertNear(movedLeft.Y, 280, "moved left inverse local Y");
+    AssertNear(360 + leftFit.X, 440, "moved left bitmap X");
+    AssertNear(360 + leftFit.Y, 362, "moved left bitmap Y");
+}
+
+static void ChecksStructuralPlacementCornersAndRoundTrips()
+{
+    foreach (var parentTurn in new[] { 0d, 90d, 180d, 270d })
+    {
+        foreach (var childTurn in new[] { 0d, 90d, 180d, 270d })
+        {
+            const double parentX = 17.5;
+            const double parentY = -31.25;
+            const double parentWidth = 310;
+            const double parentHeight = 190;
+            const double childX = -42.75;
+            const double childY = 126.125;
+            const double childWidth = 80;
+            const double childHeight = 45;
+
+            var placement = RenderablePlacementMath.ComposeChildFootprintPlacement(
+                parentX, parentY, parentTurn, parentWidth, parentHeight,
+                childX, childY, childTurn, childWidth, childHeight);
+            var recovered = RenderablePlacementMath.ResolveChildFootprintLocalOrigin(
+                parentX, parentY, parentTurn, parentWidth, parentHeight,
+                placement.RoomOriginX, placement.RoomOriginY, childTurn, childWidth, childHeight);
+            AssertNear(recovered.X, childX, $"round-trip X at {parentTurn}/{childTurn}");
+            AssertNear(recovered.Y, childY, $"round-trip Y at {parentTurn}/{childTurn}");
+            AssertNear(placement.AbsoluteRotationDegrees, parentTurn + childTurn, "accumulated physical rotation");
+
+            var parentMin = IndependentBoundsMinimum(parentWidth, parentHeight, parentTurn);
+            var childLocalMin = IndependentBoundsMinimum(childWidth, childHeight, childTurn);
+            var childRoomMin = IndependentBoundsMinimum(childWidth, childHeight, parentTurn + childTurn);
+            foreach (var corner in RectCorners(childWidth, childHeight))
+            {
+                // Independent assembly: recover the child's physical corner in the parent's
+                // original frame, then rotate that entire point with the parent.
+                var childPhysicalOrigin = (X: childX - childLocalMin.X, Y: childY - childLocalMin.Y);
+                var childTurnedCorner = IndependentRotate(corner.X, corner.Y, childTurn);
+                var inParentFrame = IndependentRotate(
+                    childPhysicalOrigin.X + childTurnedCorner.X,
+                    childPhysicalOrigin.Y + childTurnedCorner.Y,
+                    parentTurn);
+                var assembled = (
+                    X: parentX + inParentFrame.X - parentMin.X,
+                    Y: parentY + inParentFrame.Y - parentMin.Y);
+
+                var absoluteTurnedCorner = IndependentRotate(corner.X, corner.Y, parentTurn + childTurn);
+                var fromComposedBounds = (
+                    X: placement.RoomOriginX + absoluteTurnedCorner.X - childRoomMin.X,
+                    Y: placement.RoomOriginY + absoluteTurnedCorner.Y - childRoomMin.Y);
+                AssertNear(fromComposedBounds.X, assembled.X, $"assembled corner X at {parentTurn}/{childTurn}");
+                AssertNear(fromComposedBounds.Y, assembled.Y, $"assembled corner Y at {parentTurn}/{childTurn}");
+            }
+        }
+    }
+
+    var boundary = RenderablePlacementMath.ComposeChildFootprintPlacement(
+        80, 160, 270, 400, 400, 120, 320, 0, 80, 80);
+    Assert(boundary.RoomOriginX == 400 && boundary.RoomOriginY == 360,
+        "cardinal placement introduced floating-point grid-boundary drift");
+}
+
+static void ChecksNestedStructuralPlacement()
+{
+    var child = RenderablePlacementMath.ComposeChildFootprintPlacement(
+        21.25, -40.5, 123.5, 300, 170, -25.75, 65.125, 37.25, 101, 59);
+    var grandchild = RenderablePlacementMath.ComposeChildFootprintPlacement(
+        child.RoomOriginX, child.RoomOriginY, child.AbsoluteRotationDegrees, 101, 59,
+        130.125, -15.875, -54.5, 43, 97);
+
+    AssertNear(child.AbsoluteRotationDegrees, 160.75, "nested child accumulated angle");
+    AssertNear(grandchild.AbsoluteRotationDegrees, 106.25, "nested grandchild accumulated angle");
+
+    var childOriginInRoot = (-25.75 - IndependentBoundsMinimum(101, 59, 37.25).X,
+        65.125 - IndependentBoundsMinimum(101, 59, 37.25).Y);
+    var grandchildOriginInChild = (130.125 - IndependentBoundsMinimum(43, 97, -54.5).X,
+        -15.875 - IndependentBoundsMinimum(43, 97, -54.5).Y);
+    var rootMin = IndependentBoundsMinimum(300, 170, 123.5);
+    foreach (var corner in RectCorners(43, 97))
+    {
+        var grandchildTurned = IndependentRotate(corner.X, corner.Y, -54.5);
+        var inChild = (
+            X: grandchildOriginInChild.Item1 + grandchildTurned.X,
+            Y: grandchildOriginInChild.Item2 + grandchildTurned.Y);
+        var turnedByChild = IndependentRotate(inChild.X, inChild.Y, 37.25);
+        var inRoot = (
+            X: childOriginInRoot.Item1 + turnedByChild.X,
+            Y: childOriginInRoot.Item2 + turnedByChild.Y);
+        var inRoom = IndependentRotate(inRoot.X, inRoot.Y, 123.5);
+        var assembled = (X: 21.25 + inRoom.X - rootMin.X, Y: -40.5 + inRoom.Y - rootMin.Y);
+
+        var fullTurn = IndependentRotate(corner.X, corner.Y, 106.25);
+        var fullMin = IndependentBoundsMinimum(43, 97, 106.25);
+        var fromResolved = (
+            X: grandchild.RoomOriginX + fullTurn.X - fullMin.X,
+            Y: grandchild.RoomOriginY + fullTurn.Y - fullMin.Y);
+        AssertNear(fromResolved.X, assembled.X, "nested independently assembled corner X");
+        AssertNear(fromResolved.Y, assembled.Y, "nested independently assembled corner Y");
+    }
+
+    var restoredLocal = RenderablePlacementMath.ResolveChildFootprintLocalOrigin(
+        child.RoomOriginX, child.RoomOriginY, child.AbsoluteRotationDegrees, 101, 59,
+        grandchild.RoomOriginX, grandchild.RoomOriginY, -54.5, 43, 97);
+    AssertNear(restoredLocal.X, 130.125, "nested inverse X");
+    AssertNear(restoredLocal.Y, -15.875, "nested inverse Y");
+
+    // Relative and parent turns remain physical angles; image-local fit stays a separate existing API.
+    var fractional = RenderablePlacementMath.ComposeChildFootprintPlacement(
+        -100.25, 19.75, 37.25, 240, 90, -18.625, 120.375, -13.5, 63, 109);
+    var fractionalInverse = RenderablePlacementMath.ResolveChildFootprintLocalOrigin(
+        -100.25, 19.75, 37.25, 240, 90, fractional.RoomOriginX, fractional.RoomOriginY, -13.5, 63, 109);
+    AssertNear(fractionalInverse.X, -18.625, "fractional non-cardinal inverse X");
+    AssertNear(fractionalInverse.Y, 120.375, "fractional non-cardinal inverse Y");
+}
+
+static void RejectsInvalidStructuralPlacementInputs()
+{
+    ExpectOutOfRange(() => RenderablePlacementMath.ComposeChildFootprintPlacement(
+        double.NaN, 0, 0, 10, 10, 0, 0, 0, 1, 1), "non-finite parent origin");
+    ExpectOutOfRange(() => RenderablePlacementMath.ComposeChildFootprintPlacement(
+        0, 0, 0, -1, 10, 0, 0, 0, 1, 1), "negative parent footprint");
+    ExpectOutOfRange(() => RenderablePlacementMath.ResolveChildFootprintLocalOrigin(
+        0, 0, 0, 10, 10, 0, 0, double.PositiveInfinity, 1, 1), "non-finite child angle");
+}
+
+static (double X, double Y) IndependentRotate(double x, double y, double degrees)
+{
+    var radians = degrees * (Math.PI / 180d);
+    return (x * Math.Cos(radians) - y * Math.Sin(radians), x * Math.Sin(radians) + y * Math.Cos(radians));
+}
+
+static (double X, double Y) IndependentBoundsMinimum(double width, double height, double degrees)
+{
+    var points = new[]
+    {
+        (X: 0d, Y: 0d),
+        IndependentRotate(width, 0, degrees),
+        IndependentRotate(width, height, degrees),
+        IndependentRotate(0, height, degrees)
+    };
+    return (points.Min(point => point.X), points.Min(point => point.Y));
+}
+
+static (double X, double Y)[] RectCorners(double width, double height) =>
+[
+    (0, 0),
+    (width, 0),
+    (width, height),
+    (0, height)
+];
 
 static void Assert(bool condition, string message)
 {

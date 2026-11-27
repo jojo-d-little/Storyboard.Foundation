@@ -6,7 +6,7 @@ The package contains:
 
 - Storyboard.Foundation.Paths: strict resolution for %ENVIRONMENT_VARIABLE% path expressions and deterministic asset-root containment helpers.
 - Storyboard.Foundation.Config.StackScalePolicy: shared stack scale defaults and bounds.
-- Storyboard.Foundation.Spatial.RenderablePlacementMath: renderer-independent footprint and bitmap placement calculations. See the [placement design note](docs/renderable-placement-math.md).
+- Storyboard.Foundation.Spatial.RenderablePlacementMath: renderer-independent footprint, bitmap fit, and additive parent/child structural placement calculations. See the [placement design note](docs/renderable-placement-math.md).
 - Storyboard.Foundation.Spatial.RoomImagePlacementMath: renderer-independent resolution of hosted directional room-image placement and transformed native bitmap corners. See the [room-image placement note](docs/room-image-placement-math.md).
 - Storyboard.Foundation.Directions.Direction10Formatting: formatting for the Direction10 contract enum.
 - Storyboard.Foundation.Actions.ActionScriptSyntaxValidator and ActionScriptSyntaxValidationResult: action script syntax and reference validation.

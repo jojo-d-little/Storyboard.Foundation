@@ -2,6 +2,8 @@
 
 Storyboard.Foundation.Spatial.RenderablePlacementMath converts a bitmap placement authored relative to an object's unrotated footprint into the offset a renderer applies to the room-rotated footprint origin. It contains no renderer or UI-framework types.
 
+It also composes a child physical footprint into its parent's rigidly rotated room placement and resolves the inverse movement transform. These methods operate on footprint AABB origins and physical angles; bitmap fitting remains a separate calculation.
+
 ## Coordinate system
 
 - Coordinates are measured in pixels, with the origin at the top-left and positive X rightward and positive Y downward.
@@ -39,3 +41,38 @@ For a bitmap rendered at 40 × 20, local rotation 90° gives rotated bounds with
 - A non-finite or negative footprint dimension, or a non-finite input point, causes TransformLocalPointWithinRotatedFootprint to return the input point unchanged. ComputeIconLocalOffset uses that same fallback for invalid footprint dimensions.
 - Floating-point residue with absolute magnitude below 1e-10 is normalized to zero to avoid tiny values at right-angle rotations.
 - The calculation does not inspect bitmap alpha bounds, clip to the footprint, or apply scaling itself. Callers supply already-scaled full bitmap dimensions and handle clipping/render transforms separately.
+
+## Parent and child structural placement
+
+`ComposeChildFootprintPlacement` accepts the parent room-space AABB origin, its accumulated absolute physical angle and unrotated footprint dimensions, followed by the child's parent-local AABB origin after its relative turn, relative physical angle and unrotated footprint dimensions. It returns `StructuralFootprintPlacement`, containing the child room-space AABB origin and accumulated absolute physical angle. The local origin is in the parent's unrotated footprint frame; the room origin is in room pixels.
+
+`ResolveChildFootprintLocalOrigin` is the inverse. Give it the same parent geometry and the child's room-space AABB origin, relative angle and footprint dimensions. It returns the child AABB origin in the parent's unrotated footprint frame. It inverts footprint placement only: do not pass a bitmap draw origin. This pair does not resolve parent inheritance, read state, convert cells, apply base-image scale, situational scale, or presentation cues.
+
+Let `P` be the parent's room AABB origin, `theta` its absolute angle, `Fp/Fc` the parent/child unrotated footprint rectangles, `L` the child's parent-local AABB origin after its relative turn `phi`, `b(F,a)` the minimum corner of footprint `F` rotated by `a`, and `R(a)` screen-space clockwise rotation. Then:
+
+```text
+childAngle = theta + phi
+childRoomOrigin = P + R(theta) × (L - b(Fc, phi)) - b(Fp, theta) + b(Fc, childAngle)
+
+L = R(-theta) × (childRoomOrigin - P + b(Fp, theta) - b(Fc, childAngle)) + b(Fc, phi)
+```
+
+This is equivalent to attaching the child to the parent's unrotated footprint and rotating the assembled shapes together. For nested parts, compose each edge using the resolved parent AABB origin, absolute physical angle and original parent footprint size.
+
+All values are pixels in the same already-resolved geometry space. Footprint dimensions must be finite and non-negative; coordinates and angles must be finite, and the accumulated angle must remain finite. The new methods throw `ArgumentOutOfRangeException` for invalid inputs or a non-finite calculated result. Finite angles are accumulated as supplied and normalized modulo 360 only for rotation; equivalent angles produce equivalent geometry. Exact quarter turns use exact cardinal sine/cosine values, preventing grid-boundary drift without rounding fractional or non-cardinal coordinates. Existing object helper fallback behavior for invalid bitmap dimensions, offsets and angles is unchanged.
+
+Foundation applies no scale policy. Current Designer treatment multiplies parent-relative offsets by the parent base-image scale, while Engine offsets remain room pixels. The confirmed fixture uses unit scale; this API does not establish non-unit preview/runtime parity or change either consumer's existing policy.
+
+Keep physical angle separate from bitmap-local fit. For a child, first use `ComputeIconLocalOffset(phi, imageLocalAngle, ...)` to fit the bitmap inside the parent-local assembly, then compose the complete assembly. The equivalent room-space bitmap fit uses the child's accumulated `childAngle`; do not feed image-local rotation, parent base-image scale or situational scale into physical footprint composition.
+
+### Confirmed Elevator fixture
+
+For parent AABB origin `(80,160)`, absolute angle `270°`, footprint `400 × 400`, and child footprint `80 × 80` with relative angle `0°`:
+
+| Child | Parent-local AABB origin | Composed room AABB origin |
+| --- | --- | --- |
+| Left closed | `(120,320)` | `(400,360)` |
+| Right closed | `(200,320)` | `(400,280)` |
+| Left after 40 px west move | `(120,280)` | `(360,360)` |
+
+The existing child bitmap fits remain separate. With local fit `(11,-2)`, local image angle `180°` and native image size `67 × 82`, the left bitmap origin is `(480,362)`. The right fit `(1,-2)` with `65 × 82` yields `(480,294)`. Inverting the moved left child room AABB origin returns parent-local `(120,280)`.
